@@ -9,7 +9,7 @@
 
 
 
-#define  __WIFI__
+// #define  __WIFI__
 
 #ifdef __WIFI__
 
@@ -48,25 +48,6 @@
 #define LED_COUNT   35
 
 #define LED_DATA_PIN D5
-#define CLOCK_PIN 13
-
-CRGB leds[LED_COUNT];
-float percValueArr[LED_COUNT];          // percent value of final color.
-bool directionValueArr[LED_COUNT];    // bool - direction if we are going to 100% or to 0%
-
-// some mapping what touch chip and index correspond to what LED
-int ledIndexforTouch[TOUCH_CHIPS_COUNT][TOUCH_PER_CHIPS_COUNT];
-
-bool demo;
-unsigned long LEDSwitchSpeed = 1000;
-long ledIndex;
-
-/*
-cable 1 - D7 
-cable 2 - D4 
-cable 3 - D3
-*/
-
 
 byte irq_pins[MAX_TOUCH_CHIPS_COUNT] = {
   D7,
@@ -88,7 +69,37 @@ byte addresses[MAX_TOUCH_CHIPS_COUNT] = {
   0x5C, // ADD=SCL 5D
 };
 
+////////////////////
+//
+// SOFTWARE SETTINGS
+//
+/////////////////////
+
+// initial colors, can be store somewhere in EPROM
+unsigned long updateSpeed = 10; // how often to update in ms
+unsigned long upSpeed = 500;
+unsigned long downSpeed = 3000;
+
+ // initial colors, can be store somewhere in EPROM
+CRGB onColor(0,20,255); 
+CRGB offColor(0,0,0);
+
+char tresholdTouch = 3;  //15
+char tresholdRelease = 6;  //4
+
+bool demo;
+unsigned long LEDSwitchSpeed = 1000;
+long ledIndex;
+
 MPR121 sensors[TOUCH_CHIPS_COUNT];
+
+CRGB leds[LED_COUNT];
+float percValueArr[LED_COUNT];          // percent value of final color.
+bool directionValueArr[LED_COUNT];    // bool - direction if we are going to 100% or to 0%
+
+// some mapping what touch chip and index correspond to what LED
+int ledIndexforTouch[TOUCH_CHIPS_COUNT][TOUCH_PER_CHIPS_COUNT];
+
 
 //
 //
@@ -114,23 +125,6 @@ const uint8_t gamma8[] = {
   177,180,182,184,186,189,191,193,196,198,200,203,205,208,210,213,
   215,218,220,223,225,228,231,233,236,239,241,244,247,249,252,255 };
 
-////////////////////
-//
-// SOFTWARE SETTINGS
-//
-/////////////////////
-
-// initial colors, can be store somewhere in EPROM
-unsigned long updateSpeed = 10; // how often to update in ms
-unsigned long upSpeed = 500;
-unsigned long downSpeed = 3000;
-
- // initial colors, can be store somewhere in EPROM
-CRGB onColor(0,20,255); 
-CRGB offColor(0,0,0);
-
-char tresholdTouch = 3;  //15
-char tresholdRelease = 6;  //4
 
 //////////////////////////////////////////////////////////////////////////////
 //
@@ -177,8 +171,6 @@ void resetInterval(intervalTimer &timer, unsigned long ms)
 intervalTimer updateTimer;
 intervalTimer LEDDemoTimer;
 
-intervalTimer StatusTimer;
-
 //////////////////////////////////////////////////////////////////////////////
 //
 //   Initialize all arrays, values and more.
@@ -224,7 +216,6 @@ void updateLEDS(unsigned long updateTime)
         if (percValueArr[i] < 0)
             percValueArr[i] = 0;
     }
-
 
     int R = offColor.r - (offColor.r - onColor.r)/100.0f * percValueArr[i];
     int G = offColor.g - (offColor.g - onColor.g)/100.0f * percValueArr[i];
@@ -321,28 +312,22 @@ void setup()
 {
 
   Serial.begin(9600);
-  Serial.println("MPR121 Multiple initializing");
-
   Serial.println("Init Arrays");
   initArrays();
-
-  //delay(5000);
 
   ledIndex = 0;
   demo = false; 
 
-  Serial.println("Init Touch");
- // if (!demo)
+  if (!demo)
   {
+	  Serial.println("Init Touch");
    initTouch();
   }
 
   SetupInterval(updateTimer, updateSpeed);
   SetupInterval(LEDDemoTimer, LEDSwitchSpeed);
 
-  SetupInterval(StatusTimer, LEDSwitchSpeed);
-
-  // check WS what it is.
+ // SetupInterval(StatusTimer, LEDSwitchSpeed);
 
   Serial.println("Inited LEDS");
   FastLED.setDither(0);
@@ -373,9 +358,6 @@ void setup()
   setOTA();
   
   Serial.println("Setup Done");
-
-  // init wifi manager
-  // somehow - connection to MQTT,
 }
 
 /*****************************************************************************/
@@ -430,13 +412,6 @@ void loop() {
       ArduinoOTA.handle();
     }
   #endif
-
-  /*
-  if (processInterval(StatusTimer, currentMillis))
-  {
-      Serial.println("Status -<");
-  }
-  */
 }
 
 
